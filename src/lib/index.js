@@ -1,1 +1,3 @@
-// Reexport your entry components here
+import Editor from "$lib/Editor.svelte"
+
+export { Editor }
