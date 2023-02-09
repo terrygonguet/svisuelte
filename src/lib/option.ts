@@ -1,6 +1,6 @@
 export type Option<T> = T | null
 
-export function isSome<T>(opt: Option<T>): opt is T {
+export function isSome<T>(opt: Option<T> | undefined): opt is T {
 	return opt != null
 }
 
@@ -8,7 +8,7 @@ export function isNone<T>(opt: Option<T>): opt is null {
 	return opt == null
 }
 
-export function map<T, U>(opt: Option<T>, f: (value: T) => U): Option<U> {
+export function map<T, U>(opt: Option<T> | undefined, f: (value: T) => U): Option<U> {
 	return isSome(opt) ? f(opt) : null
 }
 

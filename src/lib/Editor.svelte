@@ -1,3 +1,19 @@
+<script context="module" lang="ts">
+	export type EditorActionMap = typeof Action
+	export type EditorAction = EditorActionMap[keyof EditorActionMap]
+	export type Keybinds = { [key: string]: EditorAction }
+	export const Action = {
+		SelectNextSibling: "select.nextSibling",
+		SelectPrevSibling: "select.prevSibling",
+		SelectFirstChild: "select.firstChild",
+		SelectLastChild: "select.lastChild",
+		SelectParent: "select.parent",
+		CreateSibling: "create.sibling",
+		AppendChild: "create.child",
+		ChangeElmentTag: "edit.tag",
+	} as const
+</script>
+
 <script lang="ts">
 	import { isNone, map, None, Some, type Option } from "$lib/option"
 	import clamp from "just-clamp"
@@ -10,6 +26,7 @@
 	export let minHeight: Option<number> = None
 	export let maxWidth: Option<number> = None
 	export let maxHeight: Option<number> = None
+	export let overrideKeybinds: Keybinds = {}
 
 	let wrapperWidth = 0
 	let wrapperHeight = 0
@@ -90,6 +107,67 @@
 		updateSpybox()
 	}
 
+	const defaultKeybinds: Keybinds = {
+		ArrowUp: Action.SelectPrevSibling,
+		ArrowDown: Action.SelectNextSibling,
+		ArrowLeft: Action.SelectParent,
+		ArrowRight: Action.SelectFirstChild,
+		c: Action.AppendChild,
+		s: Action.CreateSibling,
+		t: Action.ChangeElmentTag,
+	}
+	$: keybinds = { ...defaultKeybinds, ...overrideKeybinds }
+
+	function handleKeydown(e: KeyboardEvent) {
+		const action = keybinds[e.key]
+		executeAction(action)
+	}
+
+	function executeAction(action: EditorAction) {
+		switch (action) {
+			case Action.SelectFirstChild:
+				map(selected?.firstElementChild, select)
+				break
+			case Action.SelectLastChild:
+				map(selected?.lastElementChild, select)
+				break
+			case Action.SelectNextSibling:
+				map(selected?.nextElementSibling, select)
+				break
+			case Action.SelectPrevSibling:
+				map(selected?.previousElementSibling, select)
+				break
+			case Action.SelectParent:
+				if (selected?.parentElement != content) map(selected?.parentElement, select)
+				break
+			case Action.AppendChild:
+				{
+					const parent = selected ?? content
+					const child = document.createElement("div")
+					parent.appendChild(child)
+					select(child)
+				}
+				break
+			case Action.CreateSibling:
+				if (selected) {
+					const sibling = document.createElement("div")
+					selected.insertAdjacentElement("afterend", sibling)
+					select(sibling)
+				} else executeAction(Action.AppendChild)
+				break
+			case Action.ChangeElmentTag:
+				if (selected) {
+					const el = document.createElement("p")
+					for (const attr of selected.getAttributeNames()) {
+						el.setAttribute(attr, el.getAttribute(attr) ?? "")
+					}
+					selected.replaceWith(el)
+					select(el)
+				}
+				break
+		}
+	}
+
 	onMount(() => {
 		content.innerHTML =
 			"<div><p>Proident fugiat non culpa excepteur. Fugiat do quis cupidatat reprehenderit dolor ex. Laborum enim tempor nulla duis ipsum sint excepteur laboris pariatur. Ipsum mollit dolore qui dolor. Consectetur commodo aliqua veniam est commodo velit. Id eu proident laboris veniam id mollit officia do occaecat laborum minim mollit.</p><p>Consectetur ex ex qui ex adipisicing exercitation ipsum eiusmod id occaecat. Ad occaecat non incididunt et ea exercitation duis sint deserunt. Consectetur Lorem mollit anim sint aliquip exercitation. Veniam veniam laboris nostrud consectetur nulla. Non nulla enim ut sunt in aliqua cillum ex ad laborum proident id laborum. Sit laborum cillum enim reprehenderit ex eu velit incididunt in ut enim ut.</p></div>"
@@ -99,7 +177,14 @@
 
 <svelte:window on:pointerup={endResize} />
 
-<section id="wrapper" bind:clientWidth={wrapperWidth} bind:clientHeight={wrapperHeight}>
+<!-- svelte-ignore a11y-no-noninteractive-tabindex -->
+<section
+	id="wrapper"
+	bind:clientWidth={wrapperWidth}
+	bind:clientHeight={wrapperHeight}
+	on:keydown={handleKeydown}
+	tabindex="0"
+>
 	<div id="editor" bind:this={editorEl}>
 		<span id="dimensions" on:dblclick={resetSize}>{width}x{height}px - {label}</span>
 		{#if selected}
@@ -109,7 +194,7 @@
 				style:--y={$spy.y}
 				style:--w={$spy.w}
 				style:--h={$spy.h}
-				style:opacity={cleanupResize ? 0.2 : 1}
+				class:faded={cleanupResize}
 			/>
 		{/if}
 		<div
@@ -118,9 +203,9 @@
 			style:height={height + "px"}
 			bind:this={content}
 		/>
-		<button id="width-handle" on:pointerdown={startResize("width")}>║</button>
-		<button id="height-handle" on:pointerdown={startResize("height")}>══</button>
-		<button id="both-handle" on:pointerdown={startResize("both")} />
+		<button tabindex="-1" id="width-handle" on:pointerdown={startResize("width")}>║</button>
+		<button tabindex="-1" id="height-handle" on:pointerdown={startResize("height")}>══</button>
+		<button tabindex="-1" id="both-handle" on:pointerdown={startResize("both")} />
 	</div>
 </section>
 
@@ -186,6 +271,13 @@
 		font-family: "Courier New", Courier, monospace;
 		pointer-events: none;
 		transition: opacity 0.2s ease-in-out;
+		opacity: 0.2;
+	}
+	#wrapper:focus #spy {
+		opacity: 1;
+	}
+	#spy.faded {
+		opacity: 0.2;
 	}
 
 	#dimensions {
