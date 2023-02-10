@@ -19,6 +19,7 @@
 	import clamp from "just-clamp"
 	import { onMount, tick } from "svelte"
 	import { tweened } from "svelte/motion"
+	import { Tree } from "$lib/tree"
 
 	export let initialWidth: Option<number> = Some(800)
 	export let initialHeight: Option<number> = Some(600)
@@ -26,7 +27,6 @@
 	export let minHeight: Option<number> = None
 	export let maxWidth: Option<number> = None
 	export let maxHeight: Option<number> = None
-	export let overrideKeybinds: Keybinds = {}
 
 	let wrapperWidth = 0
 	let wrapperHeight = 0
@@ -34,9 +34,9 @@
 	let height = initialHeight ?? 600
 
 	let content: HTMLDivElement
-	let selected: Option<Element>
+	const tree = new Tree()
 
-	$: label = selected ? elementLabel(selected) : ""
+	$: label = ""
 
 	const spy = tweened<{ x: number; y: number; w: number; h: number }>(undefined, {
 		duration: 100,
@@ -91,87 +91,92 @@
 
 	let editorEl: Element
 	function updateSpybox() {
-		if (isNone(selected)) return
-		const wrapper = editorEl.getBoundingClientRect()
-		const rect = selected.getBoundingClientRect()
-		$spy = {
-			x: rect.x - wrapper.x,
-			y: rect.y - wrapper.y,
-			w: rect.width,
-			h: rect.height,
-		}
+		// if (isNone(selected)) return
+		// const wrapper = editorEl.getBoundingClientRect()
+		// const rect = selected.getBoundingClientRect()
+		// $spy = {
+		// 	x: rect.x - wrapper.x,
+		// 	y: rect.y - wrapper.y,
+		// 	w: rect.width,
+		// 	h: rect.height,
+		// }
 	}
 
-	function select(el: Element) {
-		selected = el
-		updateSpybox()
-	}
-
-	const defaultKeybinds: Keybinds = {
-		ArrowUp: Action.SelectPrevSibling,
-		ArrowDown: Action.SelectNextSibling,
-		ArrowLeft: Action.SelectParent,
-		ArrowRight: Action.SelectFirstChild,
-		c: Action.AppendChild,
-		s: Action.CreateSibling,
-		t: Action.ChangeElmentTag,
-	}
-	$: keybinds = { ...defaultKeybinds, ...overrideKeybinds }
-
-	function handleKeydown(e: KeyboardEvent) {
-		const action = keybinds[e.key]
-		executeAction(action)
-	}
-
-	function executeAction(action: EditorAction) {
-		switch (action) {
-			case Action.SelectFirstChild:
-				map(selected?.firstElementChild, select)
-				break
-			case Action.SelectLastChild:
-				map(selected?.lastElementChild, select)
-				break
-			case Action.SelectNextSibling:
-				map(selected?.nextElementSibling, select)
-				break
-			case Action.SelectPrevSibling:
-				map(selected?.previousElementSibling, select)
-				break
-			case Action.SelectParent:
-				if (selected?.parentElement != content) map(selected?.parentElement, select)
-				break
-			case Action.AppendChild:
-				{
-					const parent = selected ?? content
-					const child = document.createElement("div")
-					parent.appendChild(child)
-					select(child)
-				}
-				break
-			case Action.CreateSibling:
-				if (selected) {
-					const sibling = document.createElement("div")
-					selected.insertAdjacentElement("afterend", sibling)
-					select(sibling)
-				} else executeAction(Action.AppendChild)
-				break
-			case Action.ChangeElmentTag:
-				if (selected) {
-					const el = document.createElement("p")
-					for (const attr of selected.getAttributeNames()) {
-						el.setAttribute(attr, el.getAttribute(attr) ?? "")
-					}
-					selected.replaceWith(el)
-					select(el)
-				}
-				break
-		}
-	}
+	export function executeAction(action: EditorAction) {}
 
 	onMount(() => {
-		content.innerHTML =
-			"<div><p>Proident fugiat non culpa excepteur. Fugiat do quis cupidatat reprehenderit dolor ex. Laborum enim tempor nulla duis ipsum sint excepteur laboris pariatur. Ipsum mollit dolore qui dolor. Consectetur commodo aliqua veniam est commodo velit. Id eu proident laboris veniam id mollit officia do occaecat laborum minim mollit.</p><p>Consectetur ex ex qui ex adipisicing exercitation ipsum eiusmod id occaecat. Ad occaecat non incididunt et ea exercitation duis sint deserunt. Consectetur Lorem mollit anim sint aliquip exercitation. Veniam veniam laboris nostrud consectetur nulla. Non nulla enim ut sunt in aliqua cillum ex ad laborum proident id laborum. Sit laborum cillum enim reprehenderit ex eu velit incididunt in ut enim ut.</p></div>"
-		select(content.children[0])
+		tree.appendChildElement(
+			tree.createElement({
+				type: "element",
+				tagName: "div",
+				attributes: [
+					["id", "div1"],
+					["style", "background:red"],
+				],
+			}),
+		)
+		tree.appendChildElement(
+			tree.createElement({
+				type: "if",
+				branches: ["condition == 1", "condition == 2"],
+				else: true,
+			}),
+		)
+		tree.selectFirstChild()
+		tree.selectNextSibling()
+		tree.appendChildElement(
+			tree.createElement({
+				type: "element",
+				tagName: "div",
+				attributes: [["id", "div2"]],
+			}),
+		)
+		tree.selectNextSibling()
+		tree.appendChildElement(
+			tree.createElement({
+				type: "element",
+				tagName: "div",
+				attributes: [["id", "div3"]],
+			}),
+		)
+		tree.selectNextSibling()
+		tree.appendChildElement(
+			tree.createElement({
+				type: "element",
+				tagName: "div",
+				attributes: [["id", "div4"]],
+			}),
+		)
+		tree.insertElementAfter(
+			tree.createElement({
+				type: "each",
+				expression: "items",
+				as: "item",
+				key: "item.id",
+				index: "i",
+				else: true,
+			}),
+		)
+		tree.selectNextSibling()
+		tree.appendChildElement(
+			tree.createElement({
+				type: "component",
+				name: "Card",
+				src: "$lib/Card.svelte",
+				properties: [["item", "{item}"]],
+			}),
+		)
+		tree.selectNextSibling()
+		tree.appendChildElement(
+			tree.createElement({
+				type: "element",
+				tagName: "p",
+				attributes: [],
+			}),
+		)
+		tree.selectNextSibling()
+		// tree.replaceWithExpression({ expression: "message", html: true })
+		console.log(tree.toString())
 	})
 </script>
 
@@ -182,12 +187,13 @@
 	id="wrapper"
 	bind:clientWidth={wrapperWidth}
 	bind:clientHeight={wrapperHeight}
-	on:keydown={handleKeydown}
+	on:keydown
+	on:keyup
 	tabindex="0"
 >
 	<div id="editor" bind:this={editorEl}>
 		<span id="dimensions" on:dblclick={resetSize}>{width}x{height}px - {label}</span>
-		{#if selected}
+		<!-- {#if selected}
 			<div
 				id="spy"
 				style:--x={$spy.x}
@@ -196,7 +202,7 @@
 				style:--h={$spy.h}
 				class:faded={cleanupResize}
 			/>
-		{/if}
+		{/if} -->
 		<div
 			id="content"
 			style:width={width + "px"}
