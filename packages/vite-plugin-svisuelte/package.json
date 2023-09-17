@@ -1,0 +1,50 @@
+{
+	"name": "vite-plugin-svisuelte",
+	"version": "0.0.1",
+	"description": "",
+	"type": "module",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"dev": "vite dev --port 5174",
+		"build": "vite build"
+	},
+	"files": [
+		"src"
+	],
+	"types": "src/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./src/index.d.ts",
+			"import": "./src/index.js"
+		},
+		"./package.json": "./package.json"
+	},
+	"devDependencies": {
+		"@sveltejs/vite-plugin-svelte": "^2.4.6",
+		"vite-plugin-singlefile": "^0.13.5"
+	},
+	"peerDependencies": {
+		"svelte": "^4.2.0",
+		"vite": "^4.4.9"
+	},
+	"keywords": [
+		"vite-plugin",
+		"vite plugin",
+		"vite",
+		"svelte"
+	],
+	"author": {
+		"email": "terry@gonguet.com",
+		"name": "Terry Gonguet",
+		"url": "https://terry.gonguet.com/"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/terrygonguet/vite-plugin-svisuelte.git",
+		"directory": "packages/vite-plugin-svisuelte"
+	},
+	"bugs": {
+		"url": "https://github.com/terrygonguet/vite-plugin-svisuelte/issues"
+	},
+	"license": "MIT"
+}
